@@ -3,132 +3,54 @@ pub fn parse(input: &str) -> Result<u64, ()> {
         return Err(());
     }
 
-    let mut parts = input
-        .trim()
-        .as_bytes()
-        .chunk_by(|&b1, &b2| (b1.is_ascii_digit() || b1 == b'.') == (b2.is_ascii_digit() || b2 == b'.'));
-    let digits = parts.next().ok_or(())?;
-    let unit_str = parts.next().unwrap_or(b"b");
-    if parts.next().is_some() {
-        return Err(());
-    }
+    let input = input.trim().as_bytes();
+    let (value, unit_str) = input.split_at(
+        input
+            .iter()
+            .position(|b| b.is_ascii_alphabetic())
+            .unwrap_or(input.len()),
+    );
+    // SAFETY: The strings are guaranteed to be ascii.
+    let (value, unit_str) = unsafe {
+        (
+            std::str::from_utf8_unchecked(value)
+                .trim_matches('0')
+                .trim(),
+            std::str::from_utf8_unchecked(unit_str),
+        )
+    };
 
-    if unit_str.len() > 3 {
+    if unit_str.len() > 2 {
         return Err(());
     }
-    let mut unit_str_lower = &mut [0; 3][..unit_str.len()];
-    unit_str_lower.copy_from_slice(unit_str);
+    let unit_str_lower = &mut [0; 2][..unit_str.len()];
+    unit_str_lower.copy_from_slice(unit_str.as_bytes());
     unit_str_lower.make_ascii_lowercase();
-    if matches!(unit_str_lower.last(), Some(b'b')) {
-        let len = unit_str_lower.len();
-        unit_str_lower = &mut unit_str_lower[..len - 1];
-    }
+    let unit_str_lower = unit_str_lower.strip_suffix(b"b").unwrap_or(unit_str_lower);
 
-    dbg!(std::str::from_utf8(digits));
-    dbg!(std::str::from_utf8(unit_str));
-    dbg!(std::str::from_utf8(unit_str_lower));
-
-    let mut digits_parts = digits.split(|&b| b == b'.');
-    let decimals = digits_parts.next().ok_or(())?;
-    let mut fractions = digits_parts.next().unwrap_or(b"");
-    if digits_parts.next().is_some() {
-        return Err(());
-    }
-
-    dbg!(std::str::from_utf8(decimals));
-    dbg!(std::str::from_utf8(fractions));
-
+    let (integer_str, fraction_str) = value.split_once('.').unwrap_or((value, ""));
     let mut unit = match &*unit_str_lower {
-        // b"" => 0,
-        // b"k" => 3,
-        // b"m" => 6,
-        // b"g" => 9,
-        // b"t" => 12,
-        // b"p" => 15,
-
         b"" => 1,
         b"k" => 1_000,
         b"m" => 1_000_000,
         b"g" => 1_000_000_000,
         b"t" => 1_000_000_000_000,
         b"p" => 1_000_000_000_000_000,
-
-        // b"b" => 1,
-        // b"B" => 8,
-        // b"kb" | b"Kb" => 1_000,
-        // b"kB" | b"KB" => 8_000,
-        // b"Mb" | b"mb" => 1_000_000,
-        // b"MB" | b"mB" => 8_000_000,
-        // b"Gb" | b"gb" => 1_000_000_000,
-        // b"GB" | b"gB" => 8_000_000_000,
-        // b"Tb" | b"tb" => 1_000_000_000_000,
-        // b"TB" | b"tB" => 8_000_000_000_000,
-        // b"Pb" | b"pb" => 1_000_000_000_000_000,
-        // b"PB" | b"pB" => 8_000_000_000_000_000,
+        b"e" => 1_000_000_000_000_000_000,
         _ => return Err(()),
     };
-    // if unit_str.ends_with(b"B") {
-    //     unit *= 8;
-    // }
-    dbg!(unit);
-
-    let mut output = 0;
-    // let mut power = unit;
-    // for &b in decimals.iter().rev() {
-    //     if !b.is_ascii_digit() {
-    //         return Err(());
-    //     }
-    //     output += (b - b'0') as u64 * power;
-    //     power *= 10;
-    // }
-
-
-    let mut decimal = std::str::from_utf8(decimals).map_err(|_| ())?
-        .parse::<u64>().map_err(|_| ())? * unit;
-        // * 10u64.pow(unit);
-    if unit_str.ends_with(b"B") {
-        decimal *= 8;
+    if unit_str.ends_with("B") {
+        unit *= 8;
     }
-    dbg!(decimal);
-    output += decimal;
 
-    if !fractions.is_empty() {
-        let fraction_str = std::str::from_utf8(fractions).map_err(|_| ())?
-            .trim_end_matches('0');
-        let mut fraction = fraction_str.parse::<u64>().map_err(|_| ())?;
-        dbg!(fraction);
-        if unit_str.ends_with(b"B") {
-            fraction *= 8;
+    fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, ()> {
+        if part.is_empty() {
+            return Ok(0);
         }
-        // fraction *= 10u64.pow(unit.saturating_sub(fraction_str.len() as u32));
-        // fraction = fraction * 10u64.pow(unit) / 10u64.pow(fraction_str.len() as u32);
-        // dbg!(fraction);
-
-        output += fraction * unit / 10u64.pow(fraction_str.len() as u32);
+        Ok(part.parse::<u64>().map_err(|_| ())? * unit / reduce)
     }
-
-    // let mut fraction = std::str::from_utf8(fractions).map_err(|_| ())?
-    //     .parse::<u64>()?;
-    // if unit_str.ends_with(b"B") {
-    //     fraction *= 8;
-    // }
-    // output += fraction /
-    // power = unit;
-    // for &b in fractions {
-    //     if !b.is_ascii_digit() {
-    //         return Err(());
-    //     }
-    //     output += (b - b'0') as u64 * power / 10; // Multiply first to keep precision on fractional Byte (B).
-    //     power /= 10;
-    // }
-
-    dbg!(output);
-
-    // if unit_str.ends_with(b"B") {
-    //     output *= 8;
-    // }
-
-    Ok(output)
+    Ok(apply_unit(integer_str, unit, 1)?
+        + apply_unit(fraction_str, unit, 10u64.pow(fraction_str.len() as u32))?)
 }
 
 #[cfg(test)]
@@ -152,16 +74,25 @@ mod tests {
         assert_eq!(super::parse("12.3PB").unwrap(), 98_400_000_000_000_000);
 
         // "Strange" fractions.
-        assert_eq!(super::parse("0.125B").unwrap(), 1);
-        assert_eq!(super::parse("0.3B").unwrap(), 2);
-        assert_eq!(super::parse("12.3B").unwrap(), 98);
-        assert_eq!(super::parse("12.34B").unwrap(), 98);
+        assert_eq!(super::parse("0.2").unwrap(), 0); // Less than a bit.
+        assert_eq!(super::parse("0.125B").unwrap(), 1); // One bit from a byte.
+        assert_eq!(super::parse("0.3B").unwrap(), 2); // Round to previous bit.
+        assert_eq!(super::parse("12.3B").unwrap(), 98); // Round to previous bit.
+        assert_eq!(super::parse("12.34B").unwrap(), 98); // Round to previous bit.
+        assert_eq!(super::parse("012.340kb").unwrap(), 12_340); // Unused zeroes.
         assert_eq!(super::parse("12.3456kb").unwrap(), 12_345); // Overflowing fraction.
         assert_eq!(super::parse("12.3456kB").unwrap(), 98_764); // Byte rounding.
         assert_eq!(super::parse("12.34567kB").unwrap(), 98_765); // Byte rounding.
+        assert_eq!(super::parse(".5kb").unwrap(), 500); // Missing integer.
+        assert_eq!(super::parse("5.kb").unwrap(), 5_000); // Missing fraction.
 
-        // No units.
-        assert_eq!(super::parse("0.2").unwrap(), 0);
+        // Missing units.
+        assert_eq!(super::parse("12k").unwrap(), 12_000);
         assert_eq!(super::parse("12").unwrap(), 12);
+
+        // Additional spaces.
+        assert_eq!(super::parse(" 12kb").unwrap(), 12_000);
+        assert_eq!(super::parse("12kb ").unwrap(), 12_000);
+        assert_eq!(super::parse("12 kb").unwrap(), 12_000);
     }
 }
