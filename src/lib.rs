@@ -1,4 +1,8 @@
 pub fn parse(input: &str) -> Result<u64, ()> {
+    if !input.is_ascii() {
+        return Err(());
+    }
+
     let mut parts = input
         .trim()
         .as_bytes()
@@ -26,7 +30,7 @@ pub fn parse(input: &str) -> Result<u64, ()> {
 
     let mut digits_parts = digits.split(|&b| b == b'.');
     let decimals = digits_parts.next().ok_or(())?;
-    let fractions = digits_parts.next().unwrap_or(b"");
+    let mut fractions = digits_parts.next().unwrap_or(b"");
     if digits_parts.next().is_some() {
         return Err(());
     }
@@ -34,14 +38,21 @@ pub fn parse(input: &str) -> Result<u64, ()> {
     dbg!(std::str::from_utf8(decimals));
     dbg!(std::str::from_utf8(fractions));
 
-
     let mut unit = match &*unit_str_lower {
+        // b"" => 0,
+        // b"k" => 3,
+        // b"m" => 6,
+        // b"g" => 9,
+        // b"t" => 12,
+        // b"p" => 15,
+
         b"" => 1,
         b"k" => 1_000,
         b"m" => 1_000_000,
         b"g" => 1_000_000_000,
         b"t" => 1_000_000_000_000,
         b"p" => 1_000_000_000_000_000,
+
         // b"b" => 1,
         // b"B" => 8,
         // b"kb" | b"Kb" => 1_000,
@@ -56,34 +67,66 @@ pub fn parse(input: &str) -> Result<u64, ()> {
         // b"PB" | b"pB" => 8_000_000_000_000_000,
         _ => return Err(()),
     };
-    if unit_str.ends_with(b"B") {
-        unit *= 8;
-    }
+    // if unit_str.ends_with(b"B") {
+    //     unit *= 8;
+    // }
     dbg!(unit);
 
     let mut output = 0;
-    let mut power = unit;
-    for &b in decimals.iter().rev() {
-        if !b.is_ascii_digit() {
-            return Err(());
-        }
-        output += (b - b'0') as u64 * power;
-        power *= 10;
+    // let mut power = unit;
+    // for &b in decimals.iter().rev() {
+    //     if !b.is_ascii_digit() {
+    //         return Err(());
+    //     }
+    //     output += (b - b'0') as u64 * power;
+    //     power *= 10;
+    // }
+
+
+    let mut decimal = std::str::from_utf8(decimals).map_err(|_| ())?
+        .parse::<u64>().map_err(|_| ())? * unit;
+        // * 10u64.pow(unit);
+    if unit_str.ends_with(b"B") {
+        decimal *= 8;
     }
+    dbg!(decimal);
+    output += decimal;
+
+    if !fractions.is_empty() {
+        let fraction_str = std::str::from_utf8(fractions).map_err(|_| ())?
+            .trim_end_matches('0');
+        let mut fraction = fraction_str.parse::<u64>().map_err(|_| ())?;
+        dbg!(fraction);
+        if unit_str.ends_with(b"B") {
+            fraction *= 8;
+        }
+        // fraction *= 10u64.pow(unit.saturating_sub(fraction_str.len() as u32));
+        // fraction = fraction * 10u64.pow(unit) / 10u64.pow(fraction_str.len() as u32);
+        // dbg!(fraction);
+
+        output += fraction * unit / 10u64.pow(fraction_str.len() as u32);
+    }
+
     // let mut fraction = std::str::from_utf8(fractions).map_err(|_| ())?
     //     .parse::<u64>()?;
     // if unit_str.ends_with(b"B") {
     //     fraction *= 8;
     // }
     // output += fraction /
-    power = unit;
-    for &b in fractions {
-        if !b.is_ascii_digit() {
-            return Err(());
-        }
-        output += (b - b'0') as u64 * power / 10; // Multiply first to keep precision on fractional Byte (B).
-        power /= 10;
-    }
+    // power = unit;
+    // for &b in fractions {
+    //     if !b.is_ascii_digit() {
+    //         return Err(());
+    //     }
+    //     output += (b - b'0') as u64 * power / 10; // Multiply first to keep precision on fractional Byte (B).
+    //     power /= 10;
+    // }
+
+    dbg!(output);
+
+    // if unit_str.ends_with(b"B") {
+    //     output *= 8;
+    // }
 
     Ok(output)
 }
@@ -96,6 +139,7 @@ mod tests {
         assert_eq!(super::parse("12B").unwrap(), 96);
         assert_eq!(super::parse("12kb").unwrap(), 12_000);
         assert_eq!(super::parse("12.345kb").unwrap(), 12_345);
+        assert_eq!(super::parse("0.12kb").unwrap(), 120);
 
         assert_eq!(super::parse("12.345kB").unwrap(), 98_760);
         assert_eq!(super::parse("12.3Mb").unwrap(), 12_300_000);
@@ -108,13 +152,16 @@ mod tests {
         assert_eq!(super::parse("12.3PB").unwrap(), 98_400_000_000_000_000);
 
         // "Strange" fractions.
+        assert_eq!(super::parse("0.125B").unwrap(), 1);
+        assert_eq!(super::parse("0.3B").unwrap(), 2);
         assert_eq!(super::parse("12.3B").unwrap(), 98);
         assert_eq!(super::parse("12.34B").unwrap(), 98);
         assert_eq!(super::parse("12.3456kb").unwrap(), 12_345); // Overflowing fraction.
-        assert_eq!(super::parse("12.3456kB").unwrap(), 98_764);
-        assert_eq!(super::parse("12.34567kB").unwrap(), 98_765);
+        assert_eq!(super::parse("12.3456kB").unwrap(), 98_764); // Byte rounding.
+        assert_eq!(super::parse("12.34567kB").unwrap(), 98_765); // Byte rounding.
 
         // No units.
+        assert_eq!(super::parse("0.2").unwrap(), 0);
         assert_eq!(super::parse("12").unwrap(), 12);
     }
 }
