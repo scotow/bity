@@ -1,6 +1,7 @@
+use crate::error::Error;
 use crate::si;
 
-pub fn parse(input: &str) -> Result<u64, ()> {
+pub fn parse(input: &str) -> Result<u64, Error> {
     si::parse_with_additional_units(crate::strip_per_second(input), &[("p", 1)])
 }
 

@@ -1,6 +1,7 @@
+use crate::error::Error;
 use crate::si;
 
-pub fn parse(input: &str) -> Result<u64, ()> {
+pub fn parse(input: &str) -> Result<u64, Error> {
     si::parse_with_additional_units(input, &[("b", 1), ("B", 8)])
 }
 
@@ -10,6 +11,8 @@ pub fn format(input: u64) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::Error;
+
     #[test]
     fn parse() {
         assert_eq!(super::parse("12b").unwrap(), 12);
@@ -49,6 +52,10 @@ mod tests {
         assert_eq!(super::parse(" 12kb").unwrap(), 12_000);
         assert_eq!(super::parse("12kb ").unwrap(), 12_000);
         assert_eq!(super::parse("12 kb").unwrap(), 12_000);
+
+        // Invalid units.
+        assert!(matches!(super::parse("12Q"), Err(Error::InvalidUnit("Q"))));
+        assert!(matches!(super::parse("12kk"), Err(Error::InvalidUnit("kk"))));
     }
 
     #[test]

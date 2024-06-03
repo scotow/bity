@@ -1,7 +1,8 @@
 pub mod bit;
 pub mod bps;
 pub mod pps;
-mod si;
+pub mod si;
+pub mod error;
 
 fn strip_per_second(mut input: &str) -> &str {
     input = input.trim();

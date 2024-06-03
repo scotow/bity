@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use crate::error::Error;
 
 const KILO: u64 = 1_000;
 const MEGA: u64 = 1_000_000;
@@ -7,31 +8,32 @@ const TERA: u64 = 1_000_000_000_000;
 const PETA: u64 = 1_000_000_000_000_000;
 const EXA: u64 = 1_000_000_000_000_000_000;
 
-pub fn parse(input: &str) -> Result<u64, ()> {
+pub fn parse(input: &str) -> Result<u64, Error> {
     parse_with_additional_units(input, &[])
 }
 
-pub fn parse_with_additional_units(input: &str, additional_units: &[(&str, u64)]) -> Result<u64, ()> {
+pub fn parse_with_additional_units<'a>(input: &'a str, additional_units: &[(&str, u64)]) -> Result<u64, Error<'a>> {
     if !input.is_ascii() {
-        return Err(());
+        return Err(Error::NotAscii);
     }
 
     let input = input.trim().as_bytes();
-    let (value, unit_str) = input.split_at(
+    let (value, original_unit_str) = input.split_at(
         input
             .iter()
             .position(|b| b.is_ascii_alphabetic())
             .unwrap_or(input.len()),
     );
     // SAFETY: The strings are guaranteed to be ascii.
-    let (value, mut unit_str) = unsafe {
+    let (value, original_unit_str) = unsafe {
         (
             std::str::from_utf8_unchecked(value)
                 .trim_matches('0')
                 .trim(),
-            std::str::from_utf8_unchecked(unit_str),
+            std::str::from_utf8_unchecked(original_unit_str),
         )
     };
+    let mut unit_str = original_unit_str;
 
     let mut unit = 1;
     // Look for basic exponent first.
@@ -66,15 +68,15 @@ pub fn parse_with_additional_units(input: &str, additional_units: &[(&str, u64)]
 
     // Unit parsing should be over by now.
     if !unit_str.is_empty() {
-        return Err(());
+        return Err(Error::InvalidUnit(original_unit_str));
     }
 
     let (integer_str, fraction_str) = value.split_once('.').unwrap_or((value, ""));
-    fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, ()> {
+    fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, Error> {
         if part.is_empty() {
             return Ok(0);
         }
-        Ok(part.parse::<u64>().map_err(|_| ())? * unit / reduce)
+        Ok(part.parse::<u64>().map_err(|err| Error::ParseIntError(part, err))? * unit / reduce)
     }
     Ok(apply_unit(integer_str, unit, 1)?
         + apply_unit(fraction_str, unit, 10u64.pow(fraction_str.len() as u32))?)
@@ -114,6 +116,8 @@ pub fn format(input: u64) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::error::Error;
+
     #[test]
     fn parse() {
         assert_eq!(super::parse("12.345k").unwrap(), 12_345);
@@ -139,29 +143,31 @@ mod tests {
         assert_eq!(super::parse("12 k").unwrap(), 12_000);
 
         // Invalids.
-        assert!(super::parse("1.1.").is_err());
-        assert!(super::parse("1.1.k").is_err());
-        assert!(super::parse("1.1.1k").is_err());
-        assert!(super::parse(".1.1k").is_err());
-        assert!(super::parse("12kk").is_err());
-        assert!(super::parse("12kM").is_err());
-        assert!(super::parse("12k M").is_err());
+        assert!(matches!(super::parse("1.1."), Err(Error::ParseIntError("1.", _))));
+        assert!(matches!(super::parse("1.1.k"), Err(Error::ParseIntError("1.", _))));
+        assert!(matches!(super::parse("1.1.1k"), Err(Error::ParseIntError("1.1", _))));
+        assert!(matches!(super::parse(".1.1k"), Err(Error::ParseIntError("1.1", _))));
+        assert!(matches!(super::parse("12kk"), Err(Error::InvalidUnit("kk"))));
+        assert!(matches!(super::parse("12kM"), Err(Error::InvalidUnit("kM"))));
+        assert!(matches!(super::parse("12k M"), Err(Error::InvalidUnit("k M"))));
     }
 
     #[test]
     fn parse_with_additional_units() {
         let additional_units = &[("h", 2), ("H", 5)];
 
+        assert_eq!(super::parse_with_additional_units("12", additional_units).unwrap(), 12);
         assert_eq!(super::parse_with_additional_units("12h", additional_units).unwrap(), 12 * 2);
         assert_eq!(super::parse_with_additional_units("12H", additional_units).unwrap(), 12 * 5);
         assert_eq!(super::parse_with_additional_units("12.345kh", additional_units).unwrap(), 12_345 * 2);
         assert_eq!(super::parse_with_additional_units("12.345kH", additional_units).unwrap(), 12_345 * 5);
         assert_eq!(super::parse_with_additional_units("0.12kH", additional_units).unwrap(), 120 * 5);
 
-        assert!(super::parse_with_additional_units("12hh", additional_units).is_err());
-        assert!(super::parse_with_additional_units("12HH", additional_units).is_err());
-        assert!(super::parse_with_additional_units("12hH", additional_units).is_err());
-        assert!(super::parse_with_additional_units("12Hh", additional_units).is_err());
+        assert!(matches!(super::parse_with_additional_units("12hh", additional_units), Err(Error::InvalidUnit("hh"))));
+        assert!(matches!(super::parse_with_additional_units("12HH", additional_units), Err(Error::InvalidUnit("HH"))));
+        assert!(matches!(super::parse_with_additional_units("12hH", additional_units), Err(Error::InvalidUnit("hH"))));
+        assert!(matches!(super::parse_with_additional_units("12Hh", additional_units), Err(Error::InvalidUnit("Hh"))));
+        assert!(matches!(super::parse_with_additional_units("12Q", additional_units), Err(Error::InvalidUnit("Q"))));
     }
 
     #[test]

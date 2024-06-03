@@ -1,6 +1,7 @@
 use crate::bit;
+use crate::error::Error;
 
-pub fn parse(input: &str) -> Result<u64, ()> {
+pub fn parse(input: &str) -> Result<u64, Error> {
     bit::parse(crate::strip_per_second(input))
 }
 
