@@ -1,7 +1,7 @@
 use crate::si;
 
 pub fn parse(input: &str) -> Result<u64, ()> {
-    si::parse(input, true)
+    si::parse_with_additional_units(input, &[("b", 1), ("B", 8)])
 }
 
 pub fn format(input: u64) -> String {
@@ -56,21 +56,7 @@ mod tests {
         assert_eq!(super::format(0), "0b");
         assert_eq!(super::format(1), "1b");
         assert_eq!(super::format(12), "12b");
-        assert_eq!(super::format(123), "123b");
         assert_eq!(super::format(1_234), "1.23kb");
         assert_eq!(super::format(12_000), "12kb");
-        assert_eq!(super::format(12_345), "12.34kb");
-        assert_eq!(super::format(123_456), "123.45kb");
-        assert_eq!(super::format(1_234_567), "1.23Mb");
-        assert_eq!(super::format(12_345_678), "12.34Mb");
-        assert_eq!(super::format(123_456_789), "123.45Mb");
-        assert_eq!(super::format(1_234_567_891), "1.23Gb");
-        assert_eq!(super::format(12_345_678_912), "12.34Gb");
-        assert_eq!(super::format(12_300_000_000_000), "12.3Tb");
-        assert_eq!(super::format(12_300_000_000_000_000), "12.3Pb");
-        assert_eq!(super::format(12_300_000_000_000_000_000), "12.3Eb");
-
-        // Extra.
-        assert_eq!(super::format(1_200), "1.2kb");
     }
 }

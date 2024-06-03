@@ -1,10 +1,7 @@
 use crate::si;
 
-pub fn parse(mut input: &str) -> Result<u64, ()> {
-    input = crate::strip_per_second(input);
-    input = input.strip_suffix("p").unwrap_or(input);
-
-    si::parse(input, false)
+pub fn parse(input: &str) -> Result<u64, ()> {
+    si::parse_with_additional_units(crate::strip_per_second(input), &[("p", 1)])
 }
 
 pub fn format(input: u64) -> String {
