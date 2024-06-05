@@ -72,11 +72,15 @@ pub fn parse_with_additional_units<'a>(input: &'a str, additional_units: &[(&str
     }
 
     let (integer_str, fraction_str) = value.split_once('.').unwrap_or((value, ""));
+    if integer_str.is_empty() && fraction_str.is_empty() {
+        return Err(Error::ParseIntError(value, None));
+    }
+
     fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, Error> {
         if part.is_empty() {
             return Ok(0);
         }
-        Ok(part.parse::<u64>().map_err(|err| Error::ParseIntError(part, err))? * unit / reduce)
+        Ok(part.parse::<u64>().map_err(|err| Error::ParseIntError(part, Some(err)))? * unit / reduce)
     }
     Ok(apply_unit(integer_str, unit, 1)?
         + apply_unit(fraction_str, unit, 10u64.pow(fraction_str.len() as u32))?)
@@ -143,10 +147,12 @@ mod tests {
         assert_eq!(super::parse("12 k").unwrap(), 12_000);
 
         // Invalids.
-        assert!(matches!(super::parse("1.1."), Err(Error::ParseIntError("1.", _))));
-        assert!(matches!(super::parse("1.1.k"), Err(Error::ParseIntError("1.", _))));
-        assert!(matches!(super::parse("1.1.1k"), Err(Error::ParseIntError("1.1", _))));
-        assert!(matches!(super::parse(".1.1k"), Err(Error::ParseIntError("1.1", _))));
+        assert!(matches!(super::parse("k"), Err(Error::ParseIntError("", None))));
+        assert!(matches!(super::parse(".k"), Err(Error::ParseIntError(".", None))));
+        assert!(matches!(super::parse("1.1."), Err(Error::ParseIntError("1.", Some(_)))));
+        assert!(matches!(super::parse("1.1.k"), Err(Error::ParseIntError("1.", Some(_)))));
+        assert!(matches!(super::parse("1.1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
+        assert!(matches!(super::parse(".1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
         assert!(matches!(super::parse("12kk"), Err(Error::InvalidUnit("kk"))));
         assert!(matches!(super::parse("12kM"), Err(Error::InvalidUnit("kM"))));
         assert!(matches!(super::parse("12k M"), Err(Error::InvalidUnit("k M"))));
@@ -155,7 +161,6 @@ mod tests {
     #[test]
     fn parse_with_additional_units() {
         let additional_units = &[("h", 2), ("H", 5)];
-
         assert_eq!(super::parse_with_additional_units("12", additional_units).unwrap(), 12);
         assert_eq!(super::parse_with_additional_units("12h", additional_units).unwrap(), 12 * 2);
         assert_eq!(super::parse_with_additional_units("12H", additional_units).unwrap(), 12 * 5);
@@ -168,6 +173,13 @@ mod tests {
         assert!(matches!(super::parse_with_additional_units("12hH", additional_units), Err(Error::InvalidUnit("hH"))));
         assert!(matches!(super::parse_with_additional_units("12Hh", additional_units), Err(Error::InvalidUnit("Hh"))));
         assert!(matches!(super::parse_with_additional_units("12Q", additional_units), Err(Error::InvalidUnit("Q"))));
+
+        let additional_units = &[("k", 2)]; // Conflicting units, custom take precedence.
+        assert_eq!(super::parse_with_additional_units("12k", additional_units).unwrap(), 24);
+
+        let additional_units = &[("AC", 2)]; // Multi-characters unit.
+        assert_eq!(super::parse_with_additional_units("12kAC", additional_units).unwrap(), 24_000);
+        assert!(matches!(super::parse_with_additional_units("12ACk", additional_units), Err(Error::InvalidUnit("ACk")))); // Custom units should come last.
     }
 
     #[test]
