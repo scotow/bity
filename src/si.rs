@@ -8,6 +8,44 @@ const TERA: u64 = 1_000_000_000_000;
 const PETA: u64 = 1_000_000_000_000_000;
 const EXA: u64 = 1_000_000_000_000_000_000;
 
+/// Parse a SI prefixed string into a number.
+///
+/// Only "positive" and multiple of `10^3n` prefixes are supported (kilo, mega, ..., upto exa).
+/// Whitespaces will be trimmed multiple times at different places, allowing flexible parsing.
+///
+/// At most one unit must be specified:
+/// - `5kk` is not supported for example
+/// - if no units is specified, a factor of `1` will be used
+///
+/// # Examples
+/// ```
+/// use bity::Error;
+///
+/// // Basics.
+/// assert_eq!(bity::si::parse("12.3k").unwrap(), 12_300);
+/// assert_eq!(bity::si::parse("0.12k").unwrap(), 120);
+/// assert_eq!(bity::si::parse("12").unwrap(), 12);
+/// // "Strange" fractions.
+/// assert_eq!(bity::si::parse("0.2").unwrap(), 0); // Less than a bit.
+/// assert_eq!(bity::si::parse("012.340k").unwrap(), 12_340); // Unused zeroes.
+/// assert_eq!(bity::si::parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
+/// assert_eq!(bity::si::parse(".5k").unwrap(), 500); // Missing integer.
+/// assert_eq!(bity::si::parse("5.k").unwrap(), 5_000); // Missing fraction.
+/// // Additional spaces.
+/// assert_eq!(bity::si::parse(" 12k").unwrap(), 12_000);
+/// assert_eq!(bity::si::parse("12k ").unwrap(), 12_000);
+/// assert_eq!(bity::si::parse("12 k").unwrap(), 12_000);
+/// // Invalids.
+/// assert!(matches!(bity::si::parse("k"), Err(Error::ParseIntError("", None))));
+/// assert!(matches!(bity::si::parse(".k"), Err(Error::ParseIntError(".", None))));
+/// assert!(matches!(bity::si::parse("1.1."), Err(Error::ParseIntError("1.", Some(_)))));
+/// assert!(matches!(bity::si::parse("1.1.k"), Err(Error::ParseIntError("1.", Some(_)))));
+/// assert!(matches!(bity::si::parse("1.1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
+/// assert!(matches!(bity::si::parse(".1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
+/// assert!(matches!(bity::si::parse("12kk"), Err(Error::InvalidUnit("kk"))));
+/// assert!(matches!(bity::si::parse("12kM"), Err(Error::InvalidUnit("kM"))));
+/// assert!(matches!(bity::si::parse("12k M"), Err(Error::InvalidUnit("k M"))));
+/// ```
 pub fn parse(input: &str) -> Result<u64, Error> {
     parse_with_additional_units(input, &[])
 }
@@ -135,7 +173,7 @@ mod tests {
         assert_eq!(super::parse("12.3P").unwrap(), 12_300_000_000_000_000);
 
         // "Strange" fractions.
-        assert_eq!(super::parse("0.2").unwrap(), 0); // Less than a bit.
+        assert_eq!(super::parse("0.2").unwrap(), 0); // Less than one.
         assert_eq!(super::parse("012.340k").unwrap(), 12_340); // Unused zeroes.
         assert_eq!(super::parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
         assert_eq!(super::parse(".5k").unwrap(), 500); // Missing integer.

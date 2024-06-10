@@ -14,8 +14,8 @@ impl Display for Error<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Error::NotAscii => write!(f, "input must be ascii"),
-            Error::InvalidUnit(input) => write!(f, "invalid unit \"{input}\""),
-            Error::ParseIntError(input, _) => write!(f, "invalid number \"{input}\""),
+            Error::InvalidUnit(input) => write!(f, r#"invalid unit "{input}""#),
+            Error::ParseIntError(input, _) => write!(f, r#"invalid number "{input}""#),
         }
     }
 }

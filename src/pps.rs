@@ -1,12 +1,12 @@
 use crate::error::Error;
-use crate::si;
+use crate::packet;
 
 pub fn parse(input: &str) -> Result<u64, Error> {
-    si::parse_with_additional_units(crate::strip_per_second(input), &[("p", 1)])
+    packet::parse(crate::strip_per_second(input))
 }
 
 pub fn format(input: u64) -> String {
-    format!("{}p/s", si::format(input))
+    format!("{}/s", packet::format(input))
 }
 
 #[cfg(test)]
