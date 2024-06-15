@@ -9,6 +9,9 @@ pub fn format(input: u64) -> String {
     format!("{}b", si::format(input))
 }
 
+#[cfg(feature = "serde")]
+crate::impl_serde!();
+
 #[cfg(test)]
 mod tests {
     use crate::error::Error;

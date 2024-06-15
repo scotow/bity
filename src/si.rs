@@ -156,6 +156,9 @@ pub fn format(input: u64) -> String {
     output
 }
 
+#[cfg(feature = "serde")]
+crate::impl_serde!();
+
 #[cfg(test)]
 mod tests {
     use crate::error::Error;

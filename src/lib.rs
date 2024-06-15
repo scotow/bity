@@ -34,6 +34,8 @@ pub mod pps;
 pub mod si;
 mod error;
 pub mod packet;
+#[cfg(feature = "serde")]
+mod serde;
 
 pub use error::Error;
 
