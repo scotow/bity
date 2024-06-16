@@ -1,7 +1,6 @@
-use crate::bit;
-use crate::error::Error;
+use crate::{bit, error::Error};
 
-pub fn parse(input: &str) -> Result<u64, Error> {
+pub fn parse(input: &str) -> Result<u64, Error<'_>> {
     bit::parse(crate::strip_per_second(input))
 }
 
@@ -10,7 +9,12 @@ pub fn format(input: u64) -> String {
 }
 
 #[cfg(feature = "serde")]
-crate::impl_serde!();
+crate::impl_serde!(
+    ser:
+    /// serialize doc
+    de:
+    /// deserialize doc
+);
 
 #[cfg(test)]
 mod tests {

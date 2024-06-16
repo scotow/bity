@@ -1,7 +1,6 @@
-use crate::error::Error;
-use crate::si;
+use crate::{error::Error, si};
 
-pub fn parse(input: &str) -> Result<u64, Error> {
+pub fn parse(input: &str) -> Result<u64, Error<'_>> {
     si::parse_with_additional_units(input, &[("b", 1), ("B", 8)])
 }
 
@@ -10,7 +9,12 @@ pub fn format(input: u64) -> String {
 }
 
 #[cfg(feature = "serde")]
-crate::impl_serde!();
+crate::impl_serde!(
+    ser:
+    /// serialize doc
+    de:
+    /// deserialize doc
+);
 
 #[cfg(test)]
 mod tests {

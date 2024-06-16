@@ -1,4 +1,5 @@
 use std::fmt::Write;
+
 use crate::error::Error;
 
 const KILO: u64 = 1_000;
@@ -10,8 +11,9 @@ const EXA: u64 = 1_000_000_000_000_000_000;
 
 /// Parse a SI prefixed string into a number.
 ///
-/// Only "positive" and multiple of `10^3n` prefixes are supported (kilo, mega, ..., upto exa).
-/// Whitespaces will be trimmed multiple times at different places, allowing flexible parsing.
+/// Only "positive" and multiple of `1_000^n` prefixes are supported (kilo, mega,
+/// ..., upto exa). Whitespaces will be trimmed multiple times at different
+/// places, allowing flexible parsing. Because SI prefixes are uniques, the parser in case-insensitive.
 ///
 /// At most one unit must be specified:
 /// - `5kk` is not supported for example
@@ -19,38 +21,57 @@ const EXA: u64 = 1_000_000_000_000_000_000;
 ///
 /// # Examples
 /// ```
-/// use bity::Error;
+/// use bity::{si::parse, Error};
 ///
 /// // Basics.
-/// assert_eq!(bity::si::parse("12.3k").unwrap(), 12_300);
-/// assert_eq!(bity::si::parse("0.12k").unwrap(), 120);
-/// assert_eq!(bity::si::parse("12").unwrap(), 12);
+/// assert_eq!(parse("12.3k").unwrap(), 12_300);
+/// assert_eq!(parse("0.12k").unwrap(), 120);
+/// assert_eq!(parse("12").unwrap(), 12);
 /// // "Strange" fractions.
-/// assert_eq!(bity::si::parse("0.2").unwrap(), 0); // Less than a bit.
-/// assert_eq!(bity::si::parse("012.340k").unwrap(), 12_340); // Unused zeroes.
-/// assert_eq!(bity::si::parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
-/// assert_eq!(bity::si::parse(".5k").unwrap(), 500); // Missing integer.
-/// assert_eq!(bity::si::parse("5.k").unwrap(), 5_000); // Missing fraction.
-/// // Additional spaces.
-/// assert_eq!(bity::si::parse(" 12k").unwrap(), 12_000);
-/// assert_eq!(bity::si::parse("12k ").unwrap(), 12_000);
-/// assert_eq!(bity::si::parse("12 k").unwrap(), 12_000);
+/// assert_eq!(parse("0.2").unwrap(), 0); // Less than a bit.
+/// assert_eq!(parse("012.340k").unwrap(), 12_340); // Unused zeroes.
+/// assert_eq!(parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
+/// assert_eq!(parse(".5k").unwrap(), 500); // Missing integer.
+/// assert_eq!(parse("5.k").unwrap(), 5_000); // Missing fraction.
+///                                           // Additional spaces.
+/// assert_eq!(parse(" 12k").unwrap(), 12_000);
+/// assert_eq!(parse("12k ").unwrap(), 12_000);
+/// assert_eq!(parse("12 k").unwrap(), 12_000);
 /// // Invalids.
-/// assert!(matches!(bity::si::parse("k"), Err(Error::ParseIntError("", None))));
-/// assert!(matches!(bity::si::parse(".k"), Err(Error::ParseIntError(".", None))));
-/// assert!(matches!(bity::si::parse("1.1."), Err(Error::ParseIntError("1.", Some(_)))));
-/// assert!(matches!(bity::si::parse("1.1.k"), Err(Error::ParseIntError("1.", Some(_)))));
-/// assert!(matches!(bity::si::parse("1.1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
-/// assert!(matches!(bity::si::parse(".1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
-/// assert!(matches!(bity::si::parse("12kk"), Err(Error::InvalidUnit("kk"))));
-/// assert!(matches!(bity::si::parse("12kM"), Err(Error::InvalidUnit("kM"))));
-/// assert!(matches!(bity::si::parse("12k M"), Err(Error::InvalidUnit("k M"))));
+/// assert!(matches!(parse("k"), Err(Error::ParseIntError("", None))));
+/// assert!(matches!(parse(".k"), Err(Error::ParseIntError(".", None))));
+/// assert!(matches!(parse("1.1."), Err(Error::ParseIntError("1.", Some(_)))));
+/// assert!(matches!(parse("1.1.k"), Err(Error::ParseIntError("1.", Some(_)))));
+/// assert!(matches!(parse("1.1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
+/// assert!(matches!(parse(".1.1k"), Err(Error::ParseIntError("1.1", Some(_)))));
+/// assert!(matches!(parse("12kk"), Err(Error::InvalidUnit("kk"))));
+/// assert!(matches!(parse("12kM"), Err(Error::InvalidUnit("kM"))));
+/// assert!(matches!(parse("12k M"), Err(Error::InvalidUnit("k M"))));
 /// ```
-pub fn parse(input: &str) -> Result<u64, Error> {
+pub fn parse(input: &str) -> Result<u64, Error<'_>> {
     parse_with_additional_units(input, &[])
 }
 
-pub fn parse_with_additional_units<'a>(input: &'a str, additional_units: &[(&str, u64)]) -> Result<u64, Error<'a>> {
+/// Like [`parse`] but with additional units that can be matched after parsing
+/// the SI prefixes.
+///
+/// Like `parse`, at most one additional unit can be used.
+///
+/// Unlike `parse`, the additional units passed will be matched case-sensitively.
+///
+/// # Examples
+/// ```
+/// use bity::si::parse_with_additional_units;
+///
+/// let additional_units = &[("b", 1), ("B", 8)];
+/// assert_eq!(parse_with_additional_units("12", additional_units).unwrap(), 12);
+/// assert_eq!(parse_with_additional_units("12b", additional_units).unwrap(), 12 * 1);
+/// assert_eq!(parse_with_additional_units("12kB", additional_units).unwrap(), 12 * 1_000 * 8);
+/// ```
+pub fn parse_with_additional_units<'a>(
+    input: &'a str,
+    additional_units: &[(&str, u64)],
+) -> Result<u64, Error<'a>> {
     if !input.is_ascii() {
         return Err(Error::NotAscii);
     }
@@ -114,16 +135,38 @@ pub fn parse_with_additional_units<'a>(input: &'a str, additional_units: &[(&str
         return Err(Error::ParseIntError(value, None));
     }
 
-    fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, Error> {
+    fn apply_unit(part: &str, unit: u64, reduce: u64) -> Result<u64, Error<'_>> {
         if part.is_empty() {
             return Ok(0);
         }
-        Ok(part.parse::<u64>().map_err(|err| Error::ParseIntError(part, Some(err)))? * unit / reduce)
+        Ok(part
+            .parse::<u64>()
+            .map_err(|err| Error::ParseIntError(part, Some(err)))?
+            * unit
+            / reduce)
     }
     Ok(apply_unit(integer_str, unit, 1)?
         + apply_unit(fraction_str, unit, 10u64.pow(fraction_str.len() as u32))?)
 }
 
+/// Format an integer into a SI prefixed string.
+///
+/// The first "full" (if any) unit will be used (no `0.**`).
+///
+/// At most two fraction digits will be displayed.
+///
+/// # Examples
+///
+/// ```
+/// use bity::si::format;
+///
+/// assert_eq!(format(0), "0");
+/// assert_eq!(format(12), "12");
+/// assert_eq!(format(1_234), "1.23k");
+/// assert_eq!(format(123_456), "123.45k");
+/// assert_eq!(format(12_345_678), "12.34M");
+/// assert_eq!(format(1_200_000_000), "1.2G");
+/// ```
 pub fn format(input: u64) -> String {
     if input == 0 {
         return "0".to_owned();
@@ -145,19 +188,20 @@ pub fn format(input: u64) -> String {
     let integer = input / exponent_base;
     write!(output, "{integer}").expect("write error");
     if input % exponent_base != 0 {
-        write!(
-            output,
-            ".{0:.2}",
-            (input % exponent_base).to_string().trim_end_matches('0')
-        )
-        .expect("write error");
+        write!(output, ".{0:.2}", (input % exponent_base).to_string().trim_end_matches('0'))
+            .expect("write error");
     }
     write!(output, "{unit}").expect("write error");
     output
 }
 
 #[cfg(feature = "serde")]
-crate::impl_serde!();
+crate::impl_serde!(
+    ser:
+    /// serialize doc
+    de:
+    /// deserialize doc
+);
 
 #[cfg(test)]
 mod tests {
@@ -205,22 +249,49 @@ mod tests {
         assert_eq!(super::parse_with_additional_units("12", additional_units).unwrap(), 12);
         assert_eq!(super::parse_with_additional_units("12h", additional_units).unwrap(), 12 * 2);
         assert_eq!(super::parse_with_additional_units("12H", additional_units).unwrap(), 12 * 5);
-        assert_eq!(super::parse_with_additional_units("12.345kh", additional_units).unwrap(), 12_345 * 2);
-        assert_eq!(super::parse_with_additional_units("12.345kH", additional_units).unwrap(), 12_345 * 5);
-        assert_eq!(super::parse_with_additional_units("0.12kH", additional_units).unwrap(), 120 * 5);
+        assert_eq!(
+            super::parse_with_additional_units("12.345kh", additional_units).unwrap(),
+            12_345 * 2
+        );
+        assert_eq!(
+            super::parse_with_additional_units("12.345kH", additional_units).unwrap(),
+            12_345 * 5
+        );
+        assert_eq!(
+            super::parse_with_additional_units("0.12kH", additional_units).unwrap(),
+            120 * 5
+        );
 
-        assert!(matches!(super::parse_with_additional_units("12hh", additional_units), Err(Error::InvalidUnit("hh"))));
-        assert!(matches!(super::parse_with_additional_units("12HH", additional_units), Err(Error::InvalidUnit("HH"))));
-        assert!(matches!(super::parse_with_additional_units("12hH", additional_units), Err(Error::InvalidUnit("hH"))));
-        assert!(matches!(super::parse_with_additional_units("12Hh", additional_units), Err(Error::InvalidUnit("Hh"))));
-        assert!(matches!(super::parse_with_additional_units("12Q", additional_units), Err(Error::InvalidUnit("Q"))));
+        assert!(matches!(
+            super::parse_with_additional_units("12hh", additional_units),
+            Err(Error::InvalidUnit("hh"))
+        ));
+        assert!(matches!(
+            super::parse_with_additional_units("12HH", additional_units),
+            Err(Error::InvalidUnit("HH"))
+        ));
+        assert!(matches!(
+            super::parse_with_additional_units("12hH", additional_units),
+            Err(Error::InvalidUnit("hH"))
+        ));
+        assert!(matches!(
+            super::parse_with_additional_units("12Hh", additional_units),
+            Err(Error::InvalidUnit("Hh"))
+        ));
+        assert!(matches!(
+            super::parse_with_additional_units("12Q", additional_units),
+            Err(Error::InvalidUnit("Q"))
+        ));
 
         let additional_units = &[("k", 2)]; // Conflicting units, custom take precedence.
         assert_eq!(super::parse_with_additional_units("12k", additional_units).unwrap(), 24);
 
         let additional_units = &[("AC", 2)]; // Multi-characters unit.
         assert_eq!(super::parse_with_additional_units("12kAC", additional_units).unwrap(), 24_000);
-        assert!(matches!(super::parse_with_additional_units("12ACk", additional_units), Err(Error::InvalidUnit("ACk")))); // Custom units should come last.
+        assert!(matches!(
+            super::parse_with_additional_units("12ACk", additional_units),
+            Err(Error::InvalidUnit("ACk"))
+        )); // Custom units should come last.
     }
 
     #[test]

@@ -3,9 +3,13 @@ name = "bity"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-serde = { version = "1.0.203", features = ["derive"], optional = true }
-
 [features]
 default = []
 serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1.0.203", features = ["derive"], optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -1,7 +1,9 @@
-use std::num::ParseIntError;
-use std::error::Error as StdError;
-use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::{
+    error::Error as StdError,
+    fmt,
+    fmt::{Display, Formatter},
+    num::ParseIntError,
+};
 
 #[derive(Debug, Clone)]
 pub enum Error<'s> {
@@ -24,7 +26,9 @@ impl StdError for Error<'_> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Error::NotAscii => None,
-            Error::ParseIntError(_, err) => err.as_ref().map(|err| err as &(dyn StdError + 'static)),
+            Error::ParseIntError(_, err) => {
+                err.as_ref().map(|err| err as &(dyn StdError + 'static))
+            }
             Error::InvalidUnit(_) => None,
         }
     }
