@@ -1,3 +1,57 @@
+//! SI prefix parsing and formatting.
+//!
+//! # Examples
+//!
+//! ```
+//! use bity::si::{format, parse};
+//!
+//! assert_eq!(parse("12.3k").unwrap(), 12_300);
+//! assert_eq!(parse("0.12k").unwrap(), 120);
+//!
+//! assert_eq!(format(1_234), "1.23k");
+//! assert_eq!(format(123_456), "123.45k");
+//! assert_eq!(format(12_345_678), "12.34M");
+//! ```
+//!
+//! # Serde
+//!
+//! Enabling the `serde` allows the use of `#[serde(serialize_with = "path")]`,
+//! `#[serde(deserialize_with = "path")]` and `#[serde(with = "module")]`
+//! attributes.
+//!
+//! ```
+//! use serde::{Deserialize, Serialize};
+//!
+//! #[derive(Serialize, Deserialize)]
+//! #[serde(rename_all = "kebab-case")]
+//! struct Configuration {
+//!     name: String,
+//!     #[serde(with = "bity::si")]
+//!     max_concurrent_users: u64,
+//!     #[serde(with = "bity::si")]
+//!     instances: u64,
+//! }
+//!
+//! let config = toml::from_str::<Configuration>(
+//!     r#"
+//!     name = "module-1"
+//!     max-concurrent-users = "1.5k"
+//!     instances = 5
+//! "#,
+//! )
+//! .unwrap();
+//! assert_eq!(config.max_concurrent_users, 1_500);
+//! assert_eq!(config.instances, 5);
+//!
+//! assert_eq!(
+//!     toml::to_string(&config).unwrap(),
+//!     r#"name = "module-1"
+//! max-concurrent-users = "1.5k"
+//! instances = "5"
+//! "#
+//! );
+//! ```
+
 use std::fmt::Write;
 
 use crate::error::Error;
@@ -11,9 +65,10 @@ const EXA: u64 = 1_000_000_000_000_000_000;
 
 /// Parse a SI prefixed string into a number.
 ///
-/// Only "positive" and multiple of `1_000^n` prefixes are supported (kilo, mega,
-/// ..., upto exa). Whitespaces will be trimmed multiple times at different
-/// places, allowing flexible parsing. Because SI prefixes are uniques, the parser in case-insensitive.
+/// Only "positive" and multiple of `1_000^n` prefixes are supported (kilo,
+/// mega, ..., upto exa). Whitespaces will be trimmed multiple times at
+/// different places, allowing flexible parsing. Because SI prefixes are
+/// uniques, the parser in case-insensitive.
 ///
 /// At most one unit must be specified:
 /// - `5kk` is not supported for example
@@ -57,7 +112,8 @@ pub fn parse(input: &str) -> Result<u64, Error<'_>> {
 ///
 /// Like `parse`, at most one additional unit can be used.
 ///
-/// Unlike `parse`, the additional units passed will be matched case-sensitively.
+/// Unlike `parse`, the additional units passed will be matched
+/// case-sensitively.
 ///
 /// # Examples
 /// ```
@@ -198,9 +254,63 @@ pub fn format(input: u64) -> String {
 #[cfg(feature = "serde")]
 crate::impl_serde!(
     ser:
-    /// serialize doc
+    /// Serialize a given `u64` into a SI prefixed string.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::si::serialize")]` and `#[serde(with = "bity::si")]` attributes.
+    ///
+    /// ```
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     name: String,
+    ///     #[serde(serialize_with = "bity::si::serialize")]
+    ///     max_concurrent_users: u64,
+    ///     #[serde(with = "bity::si")]
+    ///     instances: u64,
+    /// }
+    ///
+    /// assert_eq!(
+    ///     toml::to_string(&Configuration {
+    ///         name: "module-1".to_owned(),
+    ///         max_concurrent_users: 1_500,
+    ///         instances: 5
+    ///     }).unwrap(),
+    /// r#"name = "module-1"
+    /// max-concurrent-users = "1.5k"
+    /// instances = "5"
+    /// "#);
+    /// ```
     de:
-    /// deserialize doc
+    /// Deserialize a given integer or SI prefixed string into an `u64`.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
+    ///
+    /// ```
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     name: String,
+    ///     #[serde(deserialize_with = "bity::si::deserialize")]
+    ///     max_concurrent_users: u64,
+    ///     #[serde(with = "bity::si")]
+    ///     instances: u64,
+    /// }
+    ///
+    /// let config = toml::from_str::<Configuration>(
+    ///     r#"
+    ///     name = "module-1"
+    ///     max-concurrent-users = "1.5k"
+    ///     instances = 5
+    /// "#,
+    /// )
+    /// .unwrap();
+    /// assert_eq!(config.max_concurrent_users, 1_500);
+    /// assert_eq!(config.instances, 5);
+    /// ```
 );
 
 #[cfg(test)]

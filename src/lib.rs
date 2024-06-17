@@ -1,8 +1,6 @@
-#![cfg_attr(docsrs, feature(doc_cfg))]
-
 //! [SI prefix](https://en.wikipedia.org/wiki/Metric_prefix), data, packets, data-rate, packet-rate string parser and formater.
 //!
-//! This crate is mainly  ... with network related domain, where configuration
+//! This crate is mainly targeting network related projects, where configuration
 //! and logs are expressed as bits and packets count.
 //!
 //! # Examples
@@ -94,9 +92,6 @@ pub use error::Error;
 /// assert_eq!(bity::strip_per_second("8kbps/s"), "8kbps");
 /// ```
 pub fn strip_per_second(mut input: &str) -> &str {
-    let x: usize = 5;
-    println!("{}", x % 3);
-
     input = input.trim();
     // Don't use `trim` here because we don't want to remove the suffix multiple
     // times.

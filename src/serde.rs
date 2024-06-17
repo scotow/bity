@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-pub enum IntOrString {
+pub(crate) enum IntOrString {
     Int(u64),
     String(String),
 }
