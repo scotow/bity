@@ -2,6 +2,7 @@
 name = "bity"
 version = "0.1.0"
 edition = "2021"
+authors = ["Benjamin Lopez <contact@scotow.com>"]
 
 [features]
 default = []
@@ -11,6 +12,7 @@ serde = ["dep:serde"]
 serde = { version = "1.0.203", features = ["derive"], optional = true }
 
 [dev-dependencies]
+indoc = "2.0.5"
 toml = "0.8.14"
 
 [package.metadata.docs.rs]

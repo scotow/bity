@@ -15,41 +15,45 @@
 //!
 //! # Serde
 //!
-//! Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::si::serialize")]`,
-//! `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]`
-//! attributes.
+//! Enabling the `serde` allows the use of `#[serde(serialize_with =
+//! "bity::si::serialize")]`, `#[serde(deserialize_with =
+//! "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
 //!
 //! ```
+//! use indoc::indoc;
 //! use serde::{Deserialize, Serialize};
 //!
-//! #[derive(Serialize, Deserialize)]
+//! #[derive(Serialize, Deserialize, PartialEq, Debug)]
 //! #[serde(rename_all = "kebab-case")]
 //! struct Configuration {
-//!     name: String,
 //!     #[serde(with = "bity::si")]
 //!     max_concurrent_users: u64,
 //!     #[serde(with = "bity::si")]
 //!     instances: u64,
 //! }
 //!
-//! let config = toml::from_str::<Configuration>(
-//!     r#"
-//!     name = "module-1"
-//!     max-concurrent-users = "1.5k"
-//!     instances = 5
-//! "#,
-//! )
-//! .unwrap();
-//!
-//! assert_eq!(config.max_concurrent_users, 1_500);
-//! assert_eq!(config.instances, 5);
+//! assert_eq!(
+//!     toml::from_str::<Configuration>(indoc! {r#"
+//!         max-concurrent-users = "1.5k"
+//!         instances = 5
+//!     "#})
+//!     .unwrap(),
+//!     Configuration {
+//!         max_concurrent_users: 1_500,
+//!         instances: 5,
+//!     }
+//! );
 //!
 //! assert_eq!(
-//!     toml::to_string(&config).unwrap(),
-//!     r#"name = "module-1"
-//! max-concurrent-users = "1.5k"
-//! instances = "5"
-//! "#
+//!     toml::to_string(&Configuration {
+//!         max_concurrent_users: 1_500,
+//!         instances: 5,
+//!     })
+//!     .unwrap(),
+//!     indoc! {r#"
+//!         max-concurrent-users = "1.5k"
+//!         instances = "5"
+//!     "#}
 //! );
 //! ```
 
@@ -143,8 +147,7 @@ pub fn parse_with_additional_units<'a>(
     // SAFETY: The strings are guaranteed to be ascii.
     let (value, original_unit_str) = unsafe {
         (
-            std::str::from_utf8_unchecked(value)
-                .trim(),
+            std::str::from_utf8_unchecked(value).trim(),
             std::str::from_utf8_unchecked(original_unit_str),
         )
     };
@@ -260,12 +263,12 @@ crate::impl_serde!(
     /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::si::serialize")]` and `#[serde(with = "bity::si")]` attributes.
     ///
     /// ```
+    /// use indoc::indoc;
     /// use serde::Serialize;
     ///
     /// #[derive(Serialize)]
     /// #[serde(rename_all = "kebab-case")]
     /// struct Configuration {
-    ///     name: String,
     ///     #[serde(serialize_with = "bity::si::serialize")]
     ///     max_concurrent_users: u64,
     ///     #[serde(with = "bity::si")]
@@ -274,14 +277,14 @@ crate::impl_serde!(
     ///
     /// assert_eq!(
     ///     toml::to_string(&Configuration {
-    ///         name: "module-1".to_owned(),
     ///         max_concurrent_users: 1_500,
     ///         instances: 5
     ///     }).unwrap(),
-    /// r#"name = "module-1"
-    /// max-concurrent-users = "1.5k"
-    /// instances = "5"
-    /// "#);
+    ///     indoc! {r#"
+    ///         max-concurrent-users = "1.5k"
+    ///         instances = "5"
+    ///     "#}
+    /// );
     /// ```
     de:
     /// Deserialize a given integer or SI prefixed string into an `u64`.
@@ -289,28 +292,30 @@ crate::impl_serde!(
     /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
     ///
     /// ```
+    /// use indoc::indoc;
     /// use serde::Deserialize;
     ///
-    /// #[derive(Deserialize)]
+    /// #[derive(Deserialize, PartialEq, Debug)]
     /// #[serde(rename_all = "kebab-case")]
     /// struct Configuration {
-    ///     name: String,
     ///     #[serde(deserialize_with = "bity::si::deserialize")]
     ///     max_concurrent_users: u64,
     ///     #[serde(with = "bity::si")]
     ///     instances: u64,
     /// }
     ///
-    /// let config = toml::from_str::<Configuration>(
-    ///     r#"
-    ///     name = "module-1"
-    ///     max-concurrent-users = "1.5k"
-    ///     instances = 5
-    /// "#,
-    /// )
-    /// .unwrap();
-    /// assert_eq!(config.max_concurrent_users, 1_500);
-    /// assert_eq!(config.instances, 5);
+    /// assert_eq!(
+    ///     toml::from_str::<Configuration>(
+    ///         indoc! {r#"
+    ///             max-concurrent-users = "1.5k"
+    ///             instances = 5
+    ///         "#}
+    ///     ).unwrap(),
+    ///     Configuration {
+    ///         max_concurrent_users: 1_500,
+    ///         instances: 5,
+    ///     }
+    /// );
     /// ```
 );
 

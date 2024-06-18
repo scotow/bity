@@ -17,17 +17,17 @@
 //!
 //! # Serde
 //!
-//! Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::bps::serialize")]`,
-//! `#[serde(deserialize_with = "bity::bps::deserialize")]` and `#[serde(with = "bity::bps")]`
-//! attributes.
+//! Enabling the `serde` allows the use of `#[serde(serialize_with =
+//! "bity::bps::serialize")]`, `#[serde(deserialize_with =
+//! "bity::bps::deserialize")]` and `#[serde(with = "bity::bps")]` attributes.
 //!
 //! ```
+//! use indoc::indoc;
 //! use serde::{Deserialize, Serialize};
 //!
-//! #[derive(Serialize, Deserialize)]
+//! #[derive(Serialize, Deserialize, PartialEq, Debug)]
 //! #[serde(rename_all = "kebab-case")]
 //! struct Configuration {
-//!     name: String,
 //!     #[serde(with = "bity::bps")]
 //!     bandwidth: u64,
 //!     #[serde(with = "bity::bps")]
@@ -36,26 +36,32 @@
 //!     highest: u64,
 //! }
 //!
-//! let config = toml::from_str::<Configuration>(
-//!     r#"
-//!     name = "module-1"
-//!     bandwidth = "5.1Mb/s"
-//!     nic = "180kB"
-//!     highest = 12_000
-//! "#,
-//! )
-//! .unwrap();
-//! assert_eq!(config.bandwidth, 5_100_000);
-//! assert_eq!(config.nic, 180 * 1_000 * 8);
-//! assert_eq!(config.highest, 12_000);
+//! assert_eq!(
+//!     toml::from_str::<Configuration>(indoc! {r#"
+//!         bandwidth = "5.1Mb/s"
+//!         nic = "180kB"
+//!         highest = 12_000
+//!     "#})
+//!     .unwrap(),
+//!     Configuration {
+//!         bandwidth: 5_100_000,
+//!         nic: 180_000 * 8,
+//!         highest: 12_000,
+//!     }
+//! );
 //!
 //! assert_eq!(
-//!     toml::to_string(&config).unwrap(),
-//!     r#"name = "module-1"
-//! bandwidth = "5.1Mb/s"
-//! nic = "1.44Mb/s"
-//! highest = "12kb/s"
-//! "#
+//!     toml::to_string(&Configuration {
+//!         bandwidth: 5_100_000,
+//!         nic: 180_000 * 8,
+//!         highest: 12_000,
+//!     })
+//!     .unwrap(),
+//!     indoc! {r#"
+//!         bandwidth = "5.1Mb/s"
+//!         nic = "1.44Mb/s"
+//!         highest = "12kb/s"
+//!     "#}
 //! );
 //! ```
 
@@ -65,7 +71,8 @@ use crate::{bit, error::Error};
 ///
 /// This is equivalent to colling `bit::parse(strip_per_second(input))`.
 ///
-/// Refer to [`si::parse`] and [`bit::parse`] to learn all the rules that apply.
+/// Refer to [`si::parse`](crate::si::parse) and [`bit::parse`] to learn the
+/// rules that apply.
 ///
 /// # Examples
 /// ```
@@ -86,7 +93,8 @@ pub fn parse(input: &str) -> Result<u64, Error<'_>> {
 ///
 /// This is equivalent to colling `format!("{}/s", bit::format(input))`.
 ///
-/// Refer to [`si::format`] and [`bit::format`] to learn all the rules that apply.
+/// Refer to [`si::format`](crate::si::format) and [`bit::format`] to learn the
+/// rules that apply.
 ///
 /// # Examples
 /// ```
@@ -103,9 +111,69 @@ pub fn format(input: u64) -> String {
 #[cfg(feature = "serde")]
 crate::impl_serde!(
     ser:
-    /// serialize doc
+    /// Serialize a given `u64` into a SI prefixed data-rate string.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::bps::serialize")]` and `#[serde(with = "bity::bps")]` attributes.
+    ///
+    /// ```
+    /// use indoc::indoc;
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     #[serde(with = "bity::bps")]
+    ///     bandwidth: u64,
+    ///     #[serde(serialize_with = "bity::bps::serialize")]
+    ///     nic: u64,
+    /// }
+    ///
+    /// assert_eq!(
+    ///     toml::to_string(&Configuration {
+    ///         bandwidth: 5_100_000,
+    ///         nic: 180_000
+    ///     }).unwrap(),
+    ///     indoc! {r#"
+    ///         bandwidth = "5.1Mb/s"
+    ///         nic = "180kb/s"
+    ///     "#}
+    /// );
+    /// ```
     de:
-    /// deserialize doc
+    /// Deserialize a given integer or SI prefixed data-rate string into an `u64`.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::bps::deserialize")]` and `#[serde(with = "bity::bps")]` attributes.
+    ///
+    /// ```
+    /// use indoc::indoc;
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize, PartialEq, Debug)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     #[serde(with = "bity::bps")]
+    ///     bandwidth: u64,
+    ///     #[serde(deserialize_with = "bity::bps::deserialize")]
+    ///     nic: u64,
+    ///     #[serde(deserialize_with = "bity::bps::deserialize")]
+    ///     highest: u64,
+    /// }
+    ///
+    /// assert_eq!(
+    ///     toml::from_str::<Configuration>(
+    ///         indoc! {r#"
+    ///             bandwidth = "5.1Mb/s"
+    ///             nic = "180kB"
+    ///             highest = 12_000
+    ///         "#}
+    ///     ).unwrap(),
+    ///     Configuration {
+    ///         bandwidth: 5_100_000,
+    ///         nic: 180_000 * 8,
+    ///         highest: 12_000,
+    ///     }
+    /// );
+    /// ```
 );
 
 #[cfg(test)]
