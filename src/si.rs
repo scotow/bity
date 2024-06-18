@@ -15,8 +15,8 @@
 //!
 //! # Serde
 //!
-//! Enabling the `serde` allows the use of `#[serde(serialize_with = "path")]`,
-//! `#[serde(deserialize_with = "path")]` and `#[serde(with = "module")]`
+//! Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::si::serialize")]`,
+//! `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]`
 //! attributes.
 //!
 //! ```
@@ -40,6 +40,7 @@
 //! "#,
 //! )
 //! .unwrap();
+//!
 //! assert_eq!(config.max_concurrent_users, 1_500);
 //! assert_eq!(config.instances, 5);
 //!
@@ -143,7 +144,6 @@ pub fn parse_with_additional_units<'a>(
     let (value, original_unit_str) = unsafe {
         (
             std::str::from_utf8_unchecked(value)
-                .trim_matches('0')
                 .trim(),
             std::str::from_utf8_unchecked(original_unit_str),
         )
@@ -186,7 +186,8 @@ pub fn parse_with_additional_units<'a>(
         return Err(Error::InvalidUnit(original_unit_str));
     }
 
-    let (integer_str, fraction_str) = value.split_once('.').unwrap_or((value, ""));
+    let (integer_str, mut fraction_str) = value.split_once('.').unwrap_or((value, ""));
+    fraction_str = fraction_str.trim_end_matches('0');
     if integer_str.is_empty() && fraction_str.is_empty() {
         return Err(Error::ParseIntError(value, None));
     }
@@ -236,7 +237,7 @@ pub fn format(input: u64) -> String {
         3 => "G",
         4 => "T",
         5 => "P",
-        6 | _ => "E",
+        _ => "E",
     };
 
     let mut output = String::with_capacity(8);
@@ -324,6 +325,7 @@ mod tests {
 
         assert_eq!(super::parse("12").unwrap(), 12);
         assert_eq!(super::parse("12k").unwrap(), 12_000);
+        assert_eq!(super::parse("120k").unwrap(), 120_000);
         assert_eq!(super::parse("12.3M").unwrap(), 12_300_000);
         assert_eq!(super::parse("12.3G").unwrap(), 12_300_000_000);
         assert_eq!(super::parse("12.3T").unwrap(), 12_300_000_000_000);

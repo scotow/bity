@@ -1,9 +1,96 @@
+//! SI prefixed data parsing and formatting.
+//!
+//! # Examples
+//!
+//! ```
+//! use bity::bit::{format, parse};
+//!
+//! assert_eq!(parse("12.3kb").unwrap(), 12_300);
+//! assert_eq!(parse("0.12kB").unwrap(), 120 * 8);
+//!
+//! assert_eq!(format(1_234), "1.23kb");
+//! assert_eq!(format(123_456), "123.45kb");
+//! assert_eq!(format(12_345_678), "12.34Mb");
+//! ```
+//!
+//! # Serde
+//!
+//! Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::bit::serialize")]`,
+//! `#[serde(deserialize_with = "bity::bit::deserialize")]` and `#[serde(with = "bity::bit")]`
+//! attributes.
+//!
+//! ```
+//! use serde::{Deserialize, Serialize};
+//!
+//! #[derive(Serialize, Deserialize)]
+//! #[serde(rename_all = "kebab-case")]
+//! struct Configuration {
+//!     name: String,
+//!     #[serde(with = "bity::bit")]
+//!     user_quota: u64,
+//!     #[serde(with = "bity::bit")]
+//!     max_size: u64,
+//! }
+//!
+//! let config = toml::from_str::<Configuration>(
+//!     r#"
+//!     name = "module-1"
+//!     user-quota = "1.5kb"
+//!     max-size = 180
+//! "#,
+//! )
+//! .unwrap();
+//! assert_eq!(config.user_quota, 1_500);
+//! assert_eq!(config.max_size, 180);
+//!
+//! assert_eq!(
+//!     toml::to_string(&config).unwrap(),
+//!     r#"name = "module-1"
+//! user-quota = "1.5kb"
+//! max-size = "180b"
+//! "#
+//! );
+//! ```
+
 use crate::{error::Error, si};
 
+/// Parse a data SI prefixed string into a number.
+///
+/// This is equivalent to colling `si::parse_with_additional_units(input, &[("b", 1), ("B", 8)])`.
+///
+/// Refer to [`si::parse`] and [`si::parse_with_additional_units`] to learn all the rules that apply.
+///
+/// # Examples
+/// ```
+/// use bity::bit::parse;
+///
+/// assert_eq!(parse("12b").unwrap(), 12);
+/// assert_eq!(parse("12B").unwrap(), 96);
+/// assert_eq!(parse("12kb").unwrap(), 12_000);
+/// assert_eq!(parse("12.345kb").unwrap(), 12_345);
+/// assert_eq!(parse("0.12kb").unwrap(), 120);
+/// assert_eq!(parse("12.345kB").unwrap(), 98_760);
+/// assert_eq!(parse("12.3Mb").unwrap(), 12_300_000);
+/// assert_eq!(parse("12.3MB").unwrap(), 98_400_000);
+/// ```
 pub fn parse(input: &str) -> Result<u64, Error<'_>> {
     si::parse_with_additional_units(input, &[("b", 1), ("B", 8)])
 }
 
+/// Format an integer into a data SI prefixed string (bit oriented).
+///
+/// This is equivalent to colling `format!("{}b", si::format(input))`.
+///
+/// Refer to [`si::format`] to learn all the rules that apply.
+///
+/// # Examples
+/// ```
+/// use bity::bit::format;
+///
+/// assert_eq!(format(12), "12b");
+/// assert_eq!(format(1_234), "1.23kb");
+/// assert_eq!(format(12_000), "12kb");
+/// ```
 pub fn format(input: u64) -> String {
     format!("{}b", si::format(input))
 }
@@ -11,9 +98,63 @@ pub fn format(input: u64) -> String {
 #[cfg(feature = "serde")]
 crate::impl_serde!(
     ser:
-    /// serialize doc
+    /// Serialize a given `u64` into a SI prefixed data string.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::bit::serialize")]` and `#[serde(with = "bity::bit")]` attributes.
+    ///
+    /// ```
+    /// use serde::Serialize;
+    ///
+    /// #[derive(Serialize)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     name: String,
+    ///     #[serde(serialize_with = "bity::bit::serialize")]
+    ///     user_quota: u64,
+    ///     #[serde(with = "bity::bit")]
+    ///     max_size: u64,
+    /// }
+    ///
+    /// assert_eq!(
+    ///     toml::to_string(&Configuration {
+    ///         name: "module-1".to_owned(),
+    ///         user_quota: 1_500,
+    ///         max_size: 180
+    ///     }).unwrap(),
+    /// r#"name = "module-1"
+    /// user-quota = "1.5kb"
+    /// max-size = "180b"
+    /// "#);
+    /// ```
     de:
-    /// deserialize doc
+    /// Deserialize a given integer or SI prefixed data string into an `u64`.
+    ///
+    /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::bit::deserialize")]` and `#[serde(with = "bity::bit")]` attributes.
+    ///
+    /// ```
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// #[serde(rename_all = "kebab-case")]
+    /// struct Configuration {
+    ///     name: String,
+    ///     #[serde(deserialize_with = "bity::bit::deserialize")]
+    ///     user_quota: u64,
+    ///     #[serde(with = "bity::bit")]
+    ///     max_size: u64,
+    /// }
+    ///
+    /// let config = toml::from_str::<Configuration>(
+    ///     r#"
+    ///     name = "module-1"
+    ///     user-quota = "1.5k"
+    ///     max-size = 180
+    /// "#,
+    /// )
+    /// .unwrap();
+    /// assert_eq!(config.user_quota, 1_500);
+    /// assert_eq!(config.max_size, 180);
+    /// ```
 );
 
 #[cfg(test)]
@@ -22,6 +163,9 @@ mod tests {
 
     #[test]
     fn parse() {
+        // assert_eq!(super::parse("180kBB").unwrap(), 180 * 1_000 * 8);
+        assert_eq!(super::parse("180kb").unwrap(), 180 * 1_000);
+
         assert_eq!(super::parse("12b").unwrap(), 12);
         assert_eq!(super::parse("12B").unwrap(), 96);
         assert_eq!(super::parse("12kb").unwrap(), 12_000);

@@ -22,6 +22,7 @@
 //! # Features
 //! - No precision loss
 //! - Differentiate bits and bytes
+//! - `serde` support
 //!
 //! # Limitations
 //! - Only support [metric prefixes](https://en.wikipedia.org/wiki/Metric_prefix),
