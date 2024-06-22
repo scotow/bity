@@ -1,8 +1,15 @@
 [package]
 name = "bity"
+description = "SI prefix, data, packets, data-rate, packet-rate string parser and formater."
+categories = ["network-programming", "parsing"]
 version = "0.1.0"
 edition = "2021"
 authors = ["Benjamin Lopez <contact@scotow.com>"]
+license = "MIT"
+homepage = "https://github.com/scotow/bity"
+keywords = ["si", "units", "bit", "byte", "packet"]
+readme = "README.md"
+repository = "https://github.com/scotow/bity"
 
 [features]
 default = []
