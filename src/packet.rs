@@ -121,7 +121,7 @@ crate::impl_serde!(
     /// assert_eq!(
     ///     toml::to_string(&Configuration {
     ///         monthly_usage: 1_500,
-    ///         remaining: 180
+    ///         remaining: 180,
     ///     }).unwrap(),
     ///     indoc! {r#"
     ///         monthly-usage = "1.5kp"

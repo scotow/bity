@@ -125,7 +125,7 @@ crate::impl_serde!(
     /// assert_eq!(
     ///     toml::to_string(&Configuration {
     ///         user_quota: 1_500,
-    ///         max_size: 180
+    ///         max_size: 180,
     ///     }).unwrap(),
     ///     indoc! {r#"
     ///         user-quota = "1.5kb"

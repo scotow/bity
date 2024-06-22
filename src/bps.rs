@@ -131,7 +131,7 @@ crate::impl_serde!(
     /// assert_eq!(
     ///     toml::to_string(&Configuration {
     ///         bandwidth: 5_100_000,
-    ///         nic: 180_000
+    ///         nic: 180_000,
     ///     }).unwrap(),
     ///     indoc! {r#"
     ///         bandwidth = "5.1Mb/s"

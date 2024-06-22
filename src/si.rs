@@ -278,7 +278,7 @@ crate::impl_serde!(
     /// assert_eq!(
     ///     toml::to_string(&Configuration {
     ///         max_concurrent_users: 1_500,
-    ///         instances: 5
+    ///         instances: 5,
     ///     }).unwrap(),
     ///     indoc! {r#"
     ///         max-concurrent-users = "1.5k"

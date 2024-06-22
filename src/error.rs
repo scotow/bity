@@ -5,10 +5,14 @@ use std::{
     num::ParseIntError,
 };
 
+/// Errors that can happen when using parsing functions.
 #[derive(Debug, Clone)]
 pub enum Error<'s> {
+    /// The input string is not fully ASCII.
     NotAscii,
+    /// The unit string is invalid.
     InvalidUnit(&'s str),
+    /// The numeric part of the input could not be parsed.
     ParseIntError(&'s str, Option<ParseIntError>),
 }
 
