@@ -130,29 +130,22 @@ pub fn parse(input: &str) -> Result<u64, Error<'_>> {
 /// assert_eq!(parse_with_additional_units("12kB", additional_units).unwrap(), 12 * 1_000 * 8);
 /// ```
 pub fn parse_with_additional_units<'a>(
-    input: &'a str,
+    mut input: &'a str,
     additional_units: &[(&str, u64)],
 ) -> Result<u64, Error<'a>> {
     if !input.is_ascii() {
         return Err(Error::NotAscii);
     }
 
-    let input = input.trim().as_bytes();
-    let (value, original_unit_str) = input.split_at(
+    input = input.trim();
+    let (mut value, original_unit_str) = input.split_at(
         input
-            .iter()
+            .bytes()
             .position(|b| b.is_ascii_alphabetic())
             .unwrap_or(input.len()),
     );
-    // SAFETY: The strings are guaranteed to be ascii.
-    let (value, original_unit_str) = unsafe {
-        (
-            std::str::from_utf8_unchecked(value).trim(),
-            std::str::from_utf8_unchecked(original_unit_str),
-        )
-    };
-    let mut unit_str = original_unit_str;
 
+    let mut unit_str = original_unit_str;
     let mut unit = 1;
     // Look for basic exponent first.
     if !unit_str.is_empty() {
@@ -189,6 +182,7 @@ pub fn parse_with_additional_units<'a>(
         return Err(Error::InvalidUnit(original_unit_str));
     }
 
+    value = value.trim();
     let (integer_str, mut fraction_str) = value.split_once('.').unwrap_or((value, ""));
     fraction_str = fraction_str.trim_end_matches('0');
     if integer_str.is_empty() && fraction_str.is_empty() {
