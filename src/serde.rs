@@ -15,7 +15,6 @@ macro_rules! impl_serde {
         de: $(#[$doc2:meta])*
     ) => {
         $(#[$doc1])*
-        #[cfg(feature = "serde")]
         pub fn serialize<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer,
@@ -24,7 +23,6 @@ macro_rules! impl_serde {
         }
 
         $(#[$doc2])*
-        #[cfg(feature = "serde")]
         pub fn deserialize<'de, D>(deserializer: D) -> Result<u64, D::Error>
         where
             D: serde::Deserializer<'de>,

@@ -2,7 +2,7 @@
 name = "bity"
 description = "SI prefix, data, packets, data-rate, packet-rate string parser and formater."
 categories = ["network-programming", "parsing"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Benjamin Lopez <contact@scotow.com>"]
 license = "MIT"
@@ -20,7 +20,7 @@ serde = { version = "1.0.203", features = ["derive"], optional = true }
 
 [dev-dependencies]
 indoc = "2.0.5"
-toml = "0.8.14"
+toml = "0.8.19"
 
 [package.metadata.docs.rs]
 all-features = true

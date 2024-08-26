@@ -226,8 +226,8 @@ pub fn format(input: u64) -> String {
         return "0".to_owned();
     }
 
-    let exponent = input.ilog10() / 3;
-    let unit = match exponent {
+    let input_str = input.to_string();
+    let unit = match (input_str.len() - 1) / 3 {
         0 => "",
         1 => "k",
         2 => "M",
@@ -238,12 +238,11 @@ pub fn format(input: u64) -> String {
     };
 
     let mut output = String::with_capacity(8);
-    let exponent_base = 10u64.pow(exponent * 3);
-    let integer = input / exponent_base;
-    write!(output, "{integer}").expect("write error");
-    if input % exponent_base != 0 {
-        write!(output, ".{0:.2}", (input % exponent_base).to_string().trim_end_matches('0'))
-            .expect("write error");
+    let split = (input_str.len() - 1) % 3 + 1;
+    write!(output, "{}", &input_str[..split]).expect("write error");
+    let fraction_str = input_str[split..].trim_end_matches('0');
+    if !fraction_str.is_empty() {
+        write!(output, ".{:.2}", fraction_str).expect("write error");
     }
     write!(output, "{unit}").expect("write error");
     output
@@ -331,6 +330,7 @@ mod tests {
         assert_eq!(super::parse("12.3P").unwrap(), 12_300_000_000_000_000);
 
         // "Strange" fractions.
+        assert_eq!(super::parse("1.02k").unwrap(), 1_020); // Zero at the beginning of the fraction.
         assert_eq!(super::parse("0.2").unwrap(), 0); // Less than one.
         assert_eq!(super::parse("012.340k").unwrap(), 12_340); // Unused zeroes.
         assert_eq!(super::parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
@@ -412,6 +412,7 @@ mod tests {
         assert_eq!(super::format(12), "12");
         assert_eq!(super::format(123), "123");
         assert_eq!(super::format(1_234), "1.23k");
+        assert_eq!(super::format(1_023), "1.02k");
         assert_eq!(super::format(12_000), "12k");
         assert_eq!(super::format(12_345), "12.34k");
         assert_eq!(super::format(123_456), "123.45k");

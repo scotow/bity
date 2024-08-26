@@ -62,7 +62,8 @@
 //!         bandwidth: 512_000,
 //!         remaining: 43_883,
 //!         record: 88_300_000,
-//!     }).unwrap(),
+//!     })
+//!     .unwrap(),
 //!     indoc! {r#"
 //!         max-users = "1.5k"
 //!         user-quota = "5.2Gb"
