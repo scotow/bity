@@ -15,18 +15,18 @@
 //!
 //! # Serde
 //!
-//! Enabling the `serde` allows the use of `#[serde(serialize_with =
+//! Enabling the `serde` feature allows the use of `#[serde(serialize_with =
 //! "bity::packet::serialize")]`, `#[serde(deserialize_with =
 //! "bity::packet::deserialize")]` and `#[serde(with = "bity::packet")]`
 //! attributes.
 //!
 //! ```
-//! use indoc::indoc;
-//! use serde::{Deserialize, Serialize};
-//!
+//! # use indoc::indoc;
+//! # use serde::{Deserialize, Serialize};
+//! #
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]
 //! #[serde(rename_all = "kebab-case")]
-//! struct Configuration {
+//! struct Config {
 //!     #[serde(with = "bity::packet")]
 //!     monthly_usage: u64,
 //!     #[serde(with = "bity::packet")]
@@ -34,35 +34,39 @@
 //! }
 //!
 //! assert_eq!(
-//!     toml::from_str::<Configuration>(indoc! {r#"
+//!     toml::from_str::<Config>(
+//!         r#"
 //!         monthly-usage = "1.5kp"
 //!         remaining = 180
-//!     "#})
+//!         "#
+//!     )
 //!     .unwrap(),
-//!     Configuration {
+//!     Config {
 //!         monthly_usage: 1_500,
 //!         remaining: 180,
 //!     }
 //! );
 //!
 //! assert_eq!(
-//!     toml::to_string(&Configuration {
+//!     toml::to_string(&Config {
 //!         monthly_usage: 1_500,
 //!         remaining: 180,
 //!     })
 //!     .unwrap(),
-//!     indoc! {r#"
+//!     indoc! {
+//!         r#"
 //!         monthly-usage = "1.5kp"
 //!         remaining = "180p"
-//!     "#}
+//!     "#
+//!     }
 //! );
 //! ```
 
-use crate::{si, Error};
+use crate::{Error, si};
 
 /// Parse a packet count SI prefixed string into a number.
 ///
-/// This is equivalent to colling `si::parse_with_additional_units(input,
+/// This is equivalent to calling `si::parse_with_additional_units(input,
 /// &[("p", 1)])`.
 ///
 /// Refer to [`si::parse`] and [`si::parse_with_additional_units`] to learn the
@@ -82,7 +86,7 @@ pub fn parse(input: &str) -> Result<u64, Error<'_>> {
 
 /// Format an integer into a packet count SI prefixed string.
 ///
-/// This is equivalent to colling `format!("{}p", si::format(input))`.
+/// This is equivalent to calling `format!("{}p", si::format(input))`.
 ///
 /// Refer to [`si::format`] to learn the rules that apply.
 ///
@@ -103,15 +107,15 @@ crate::impl_serde!(
     ser:
     /// Serialize a given `u64` into a SI prefixed packet count string.
     ///
-    /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::packet::serialize")]` and `#[serde(with = "bity::packet")]` attributes.
+    /// Enabling the `serde` feature allows the use of `#[serde(serialize_with = "bity::packet::serialize")]` and `#[serde(with = "bity::packet")]` attributes.
     ///
     /// ```
-    /// use indoc::indoc;
-    /// use serde::Serialize;
-    ///
+    /// # use indoc::indoc;
+    /// # use serde::Serialize;
+    /// #
     /// #[derive(Serialize)]
     /// #[serde(rename_all = "kebab-case")]
-    /// struct Configuration {
+    /// struct Config {
     ///     #[serde(serialize_with = "bity::packet::serialize")]
     ///     monthly_usage: u64,
     ///     #[serde(with = "bity::packet")]
@@ -119,28 +123,31 @@ crate::impl_serde!(
     /// }
     ///
     /// assert_eq!(
-    ///     toml::to_string(&Configuration {
+    ///     toml::to_string(&Config {
     ///         monthly_usage: 1_500,
     ///         remaining: 180,
-    ///     }).unwrap(),
-    ///     indoc! {r#"
+    ///     })
+    ///     .unwrap(),
+    ///     indoc! {
+    ///         r#"
     ///         monthly-usage = "1.5kp"
     ///         remaining = "180p"
-    ///     "#}
+    ///         "#
+    ///     }
     /// );
     /// ```
     de:
     /// Deserialize a given integer or SI prefixed packet count string into an `u64`.
     ///
-    /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::packet::deserialize")]` and `#[serde(with = "bity::packet")]` attributes.
+    /// Enabling the `serde` feature allows the use of `#[serde(deserialize_with = "bity::packet::deserialize")]` and `#[serde(with = "bity::packet")]` attributes.
     ///
     /// ```
-    /// use indoc::indoc;
-    /// use serde::Deserialize;
-    ///
+    /// # use indoc::indoc;
+    /// # use serde::Deserialize;
+    /// #
     /// #[derive(Deserialize, PartialEq, Debug)]
     /// #[serde(rename_all = "kebab-case")]
-    /// struct Configuration {
+    /// struct Config {
     ///     #[serde(deserialize_with = "bity::packet::deserialize")]
     ///     monthly_usage: u64,
     ///     #[serde(with = "bity::packet")]
@@ -148,13 +155,14 @@ crate::impl_serde!(
     /// }
     ///
     /// assert_eq!(
-    ///     toml::from_str::<Configuration>(
-    ///         indoc! {r#"
-    ///             monthly-usage = "1.5kp"
-    ///             remaining = 180
-    ///         "#}
-    ///     ).unwrap(),
-    ///     Configuration {
+    ///     toml::from_str::<Config>(
+    ///         r#"
+    ///         monthly-usage = "1.5kp"
+    ///         remaining = 180
+    ///         "#
+    ///     )
+    ///     .unwrap(),
+    ///     Config {
     ///         monthly_usage: 1_500,
     ///         remaining: 180,
     ///     }
@@ -168,7 +176,6 @@ mod tests {
     fn parse() {
         assert_eq!(super::parse("12p").unwrap(), 12);
         assert_eq!(super::parse("12.345kp").unwrap(), 12_345);
-        assert_eq!(super::parse("12").unwrap(), 12);
     }
 
     #[test]

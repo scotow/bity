@@ -15,7 +15,7 @@
 //!
 //! # Serde
 //!
-//! Enabling the `serde` allows the use of `#[serde(serialize_with =
+//! Enabling the `serde` feature allows the use of `#[serde(serialize_with =
 //! "bity::si::serialize")]`, `#[serde(deserialize_with =
 //! "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
 //!
@@ -25,7 +25,7 @@
 //!
 //! #[derive(Serialize, Deserialize, PartialEq, Debug)]
 //! #[serde(rename_all = "kebab-case")]
-//! struct Configuration {
+//! struct Config {
 //!     #[serde(with = "bity::si")]
 //!     max_concurrent_users: u64,
 //!     #[serde(with = "bity::si")]
@@ -33,27 +33,31 @@
 //! }
 //!
 //! assert_eq!(
-//!     toml::from_str::<Configuration>(indoc! {r#"
+//!     toml::from_str::<Config>(
+//!         r#"
 //!         max-concurrent-users = "1.5k"
 //!         instances = 5
-//!     "#})
+//!         "#
+//!     )
 //!     .unwrap(),
-//!     Configuration {
+//!     Config {
 //!         max_concurrent_users: 1_500,
 //!         instances: 5,
 //!     }
 //! );
 //!
 //! assert_eq!(
-//!     toml::to_string(&Configuration {
+//!     toml::to_string(&Config {
 //!         max_concurrent_users: 1_500,
 //!         instances: 5,
 //!     })
 //!     .unwrap(),
-//!     indoc! {r#"
+//!     indoc! {
+//!         r#"
 //!         max-concurrent-users = "1.5k"
 //!         instances = "5"
-//!     "#}
+//!         "#
+//!     }
 //! );
 //! ```
 
@@ -81,7 +85,7 @@ const EXA: u64 = 1_000_000_000_000_000_000;
 ///
 /// # Examples
 /// ```
-/// use bity::{si::parse, Error};
+/// use bity::{Error, si::parse};
 ///
 /// // Basics.
 /// assert_eq!(parse("12.3k").unwrap(), 12_300);
@@ -93,7 +97,7 @@ const EXA: u64 = 1_000_000_000_000_000_000;
 /// assert_eq!(parse("12.3456k").unwrap(), 12_345); // Overflowing fraction.
 /// assert_eq!(parse(".5k").unwrap(), 500); // Missing integer.
 /// assert_eq!(parse("5.k").unwrap(), 5_000); // Missing fraction.
-///                                           // Additional spaces.
+/// // Additional spaces.
 /// assert_eq!(parse(" 12k").unwrap(), 12_000);
 /// assert_eq!(parse("12k ").unwrap(), 12_000);
 /// assert_eq!(parse("12 k").unwrap(), 12_000);
@@ -253,15 +257,15 @@ crate::impl_serde!(
     ser:
     /// Serialize a given `u64` into a SI prefixed string.
     ///
-    /// Enabling the `serde` allows the use of `#[serde(serialize_with = "bity::si::serialize")]` and `#[serde(with = "bity::si")]` attributes.
+    /// Enabling the `serde` feature allows the use of `#[serde(serialize_with = "bity::si::serialize")]` and `#[serde(with = "bity::si")]` attributes.
     ///
     /// ```
-    /// use indoc::indoc;
-    /// use serde::Serialize;
-    ///
+    /// # use indoc::indoc;
+    /// # use serde::Serialize;
+    /// #
     /// #[derive(Serialize)]
     /// #[serde(rename_all = "kebab-case")]
-    /// struct Configuration {
+    /// struct Config {
     ///     #[serde(serialize_with = "bity::si::serialize")]
     ///     max_concurrent_users: u64,
     ///     #[serde(with = "bity::si")]
@@ -269,28 +273,31 @@ crate::impl_serde!(
     /// }
     ///
     /// assert_eq!(
-    ///     toml::to_string(&Configuration {
+    ///     toml::to_string(&Config {
     ///         max_concurrent_users: 1_500,
     ///         instances: 5,
-    ///     }).unwrap(),
-    ///     indoc! {r#"
+    ///     })
+    ///     .unwrap(),
+    ///     indoc! {
+    ///         r#"
     ///         max-concurrent-users = "1.5k"
     ///         instances = "5"
-    ///     "#}
+    ///         "#
+    ///     }
     /// );
     /// ```
     de:
     /// Deserialize a given integer or SI prefixed string into an `u64`.
     ///
-    /// Enabling the `serde` allows the use of `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
+    /// Enabling the `serde` feature allows the use of `#[serde(deserialize_with = "bity::si::deserialize")]` and `#[serde(with = "bity::si")]` attributes.
     ///
     /// ```
-    /// use indoc::indoc;
-    /// use serde::Deserialize;
-    ///
+    /// # use indoc::indoc;
+    /// # use serde::Deserialize;
+    /// #
     /// #[derive(Deserialize, PartialEq, Debug)]
     /// #[serde(rename_all = "kebab-case")]
-    /// struct Configuration {
+    /// struct Config {
     ///     #[serde(deserialize_with = "bity::si::deserialize")]
     ///     max_concurrent_users: u64,
     ///     #[serde(with = "bity::si")]
@@ -298,13 +305,14 @@ crate::impl_serde!(
     /// }
     ///
     /// assert_eq!(
-    ///     toml::from_str::<Configuration>(
-    ///         indoc! {r#"
-    ///             max-concurrent-users = "1.5k"
-    ///             instances = 5
-    ///         "#}
-    ///     ).unwrap(),
-    ///     Configuration {
+    ///     toml::from_str::<Config>(
+    ///         r#"
+    ///         max-concurrent-users = "1.5k"
+    ///         instances = 5
+    ///         "#
+    ///     )
+    ///     .unwrap(),
+    ///     Config {
     ///         max_concurrent_users: 1_500,
     ///         instances: 5,
     ///     }
@@ -337,7 +345,7 @@ mod tests {
         assert_eq!(super::parse(".5k").unwrap(), 500); // Missing integer.
         assert_eq!(super::parse("5.k").unwrap(), 5_000); // Missing fraction.
 
-        // Additional spaces.
+        // Meaningless spaces.
         assert_eq!(super::parse(" 12k").unwrap(), 12_000);
         assert_eq!(super::parse("12k ").unwrap(), 12_000);
         assert_eq!(super::parse("12 k").unwrap(), 12_000);
@@ -356,38 +364,74 @@ mod tests {
 
     #[test]
     fn parse_with_additional_units() {
-        let additional_units = &[("h", 2), ("H", 5)];
-        assert_eq!(super::parse_with_additional_units("12", additional_units).unwrap(), 12);
-        assert_eq!(super::parse_with_additional_units("12h", additional_units).unwrap(), 12 * 2);
-        assert_eq!(super::parse_with_additional_units("12H", additional_units).unwrap(), 12 * 5);
+        let additional_units = &[("b", 1), ("B", 8)];
+
+        // Basics.
+        assert_eq!(super::parse_with_additional_units("12b", additional_units).unwrap(), 12);
+        assert_eq!(super::parse_with_additional_units("12B", additional_units).unwrap(), 12 * 8);
         assert_eq!(
-            super::parse_with_additional_units("12.345kh", additional_units).unwrap(),
-            12_345 * 2
+            super::parse_with_additional_units("12.345kb", additional_units).unwrap(),
+            12_345
         );
         assert_eq!(
-            super::parse_with_additional_units("12.345kH", additional_units).unwrap(),
-            12_345 * 5
+            super::parse_with_additional_units("12.345kB", additional_units).unwrap(),
+            12_345 * 8
         );
         assert_eq!(
-            super::parse_with_additional_units("0.12kH", additional_units).unwrap(),
-            120 * 5
+            super::parse_with_additional_units("0.12kB", additional_units).unwrap(),
+            120 * 8
         );
 
+        // "Strange" fractions.
+        assert_eq!(super::parse_with_additional_units("0.2", additional_units).unwrap(), 0); // Less than a bit.
+        assert_eq!(super::parse_with_additional_units("0.125B", additional_units).unwrap(), 1); // One bit from a byte.
+        assert_eq!(super::parse_with_additional_units("0.3B", additional_units).unwrap(), 2); // Round to previous bit.
+        assert_eq!(super::parse_with_additional_units("12.3B", additional_units).unwrap(), 98); // Round to previous bit.
+        assert_eq!(super::parse_with_additional_units("12.34B", additional_units).unwrap(), 98); // Round to previous bit.
+        assert_eq!(
+            super::parse_with_additional_units("012.340kb", additional_units).unwrap(),
+            12_340
+        ); // Unused zeroes.
+        assert_eq!(
+            super::parse_with_additional_units("12.3456kb", additional_units).unwrap(),
+            12_345
+        ); // Overflowing fraction.
+        assert_eq!(
+            super::parse_with_additional_units("12.3456kB", additional_units).unwrap(),
+            98_764
+        ); // Byte rounding.
+        assert_eq!(
+            super::parse_with_additional_units("12.34567kB", additional_units).unwrap(),
+            98_765
+        ); // Byte rounding.
+        assert_eq!(super::parse_with_additional_units(".5kb", additional_units).unwrap(), 500); // Missing integer.
+        assert_eq!(super::parse_with_additional_units("5.kb", additional_units).unwrap(), 5_000); // Missing fraction.
+
+        // Missing units.
+        assert_eq!(super::parse_with_additional_units("12", additional_units).unwrap(), 12);
+        assert_eq!(super::parse_with_additional_units("12k", additional_units).unwrap(), 12_000);
+
+        // Meaningless spaces.
+        assert_eq!(super::parse_with_additional_units(" 12kb", additional_units).unwrap(), 12_000);
+        assert_eq!(super::parse_with_additional_units("12kb ", additional_units).unwrap(), 12_000);
+        assert_eq!(super::parse_with_additional_units("12 kb", additional_units).unwrap(), 12_000);
+
+        // Invalids.
         assert!(matches!(
-            super::parse_with_additional_units("12hh", additional_units),
-            Err(Error::InvalidUnit("hh"))
+            super::parse_with_additional_units("12bb", additional_units),
+            Err(Error::InvalidUnit("bb"))
         ));
         assert!(matches!(
-            super::parse_with_additional_units("12HH", additional_units),
-            Err(Error::InvalidUnit("HH"))
+            super::parse_with_additional_units("12BB", additional_units),
+            Err(Error::InvalidUnit("BB"))
         ));
         assert!(matches!(
-            super::parse_with_additional_units("12hH", additional_units),
-            Err(Error::InvalidUnit("hH"))
+            super::parse_with_additional_units("12bB", additional_units),
+            Err(Error::InvalidUnit("bB"))
         ));
         assert!(matches!(
-            super::parse_with_additional_units("12Hh", additional_units),
-            Err(Error::InvalidUnit("Hh"))
+            super::parse_with_additional_units("12Bb", additional_units),
+            Err(Error::InvalidUnit("Bb"))
         ));
         assert!(matches!(
             super::parse_with_additional_units("12Q", additional_units),
@@ -395,10 +439,13 @@ mod tests {
         ));
 
         let additional_units = &[("k", 2)]; // Conflicting units, custom take precedence.
-        assert_eq!(super::parse_with_additional_units("12k", additional_units).unwrap(), 24);
+        assert_eq!(super::parse_with_additional_units("12k", additional_units).unwrap(), 12 * 2);
 
         let additional_units = &[("AC", 2)]; // Multi-characters unit.
-        assert_eq!(super::parse_with_additional_units("12kAC", additional_units).unwrap(), 24_000);
+        assert_eq!(
+            super::parse_with_additional_units("12kAC", additional_units).unwrap(),
+            12_000 * 2
+        );
         assert!(matches!(
             super::parse_with_additional_units("12ACk", additional_units),
             Err(Error::InvalidUnit("ACk"))
