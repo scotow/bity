@@ -244,7 +244,7 @@ pub fn format(input: u64) -> String {
     let mut output = String::with_capacity(8);
     let split = (input_str.len() - 1) % 3 + 1;
     write!(output, "{}", &input_str[..split]).expect("write error");
-    let fraction_str = input_str[split..].trim_end_matches('0');
+    let fraction_str = input_str[split..(split + 2).min(input_str.len())].trim_end_matches('0');
     if !fraction_str.is_empty() {
         write!(output, ".{:.2}", fraction_str).expect("write error");
     }
@@ -474,5 +474,6 @@ mod tests {
 
         // Extra.
         assert_eq!(super::format(1_200), "1.2k"); // Zeroes stripped.
+        assert_eq!(super::format(1_201), "1.2k"); // Useless units and zeroes stripped.
     }
 }

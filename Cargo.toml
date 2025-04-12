@@ -2,7 +2,7 @@
 name = "bity"
 description = "SI prefix, data, packets, data-rate, packet-rate string parser and formater."
 categories = ["network-programming", "parsing"]
-version = "0.1.1"
+version = "0.1.4"
 edition = "2024"
 authors = ["Benjamin Lopez <contact@scotow.com>"]
 license = "MIT"
