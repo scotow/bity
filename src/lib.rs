@@ -114,7 +114,6 @@
     clippy::needless_borrow,
     clippy::match_wildcard_for_single_variants,
     clippy::if_let_mutex,
-    clippy::mismatched_target_os,
     clippy::await_holding_lock,
     clippy::match_on_vec_items,
     clippy::imprecise_flops,
@@ -130,11 +129,12 @@
     clippy::verbose_file_reads,
     clippy::unnested_or_patterns,
     clippy::str_to_string,
-    rust_2018_idioms,
     future_incompatible,
-    nonstandard_style,
     missing_debug_implementations,
-    missing_docs
+    missing_docs,
+    nonstandard_style,
+    rust_2018_idioms,
+    unexpected_cfgs
 )]
 #![deny(unreachable_pub)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]

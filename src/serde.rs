@@ -28,10 +28,10 @@ macro_rules! impl_serde {
             D: serde::Deserializer<'de>,
         {
             Ok(
-                match <crate::serde::IntOrString as serde::Deserialize>::deserialize(deserializer)?
+                match <$crate::serde::IntOrString as serde::Deserialize>::deserialize(deserializer)?
                 {
-                    crate::serde::IntOrString::Int(n) => n,
-                    crate::serde::IntOrString::String(s) => {
+                    $crate::serde::IntOrString::Int(n) => n,
+                    $crate::serde::IntOrString::String(s) => {
                         parse(&s).map_err(|err| <D::Error as serde::de::Error>::custom(err))?
                     }
                 },
